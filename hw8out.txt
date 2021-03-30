@@ -1,0 +1,1919 @@
+SQL> start U:\cps541\p8\hw8.sql
+SQL> -- CPS 541 HW 8 VENKATA SAI MADHAV KAZA
+SQL> -- cr-company.sql
+SQL> -- creates the COMPANY DB-schema
+SQL> -- part 1
+SQL> 
+SQL> -- ALSO SEE figures 4.1 and 4.2 of Text (Elmasri 6th Ed.)
+SQL> 
+SQL> -- keep these two commands at the top of every sql file
+SQL> set echo on
+SQL> set linesize 120
+SQL> 
+SQL> drop table Employee cascade constraints;
+
+Table dropped.
+
+Elapsed: 00:00:00.09
+SQL> commit;
+
+Commit complete.
+
+Elapsed: 00:00:00.00
+SQL> 
+SQL> create table Employee
+  2  (
+  3  	     fname varchar2(15)  NOT NULL,
+  4  	     minit char, -- can be char
+  5  	     lname varchar2(15) NOT NULL,
+  6  	     ssn char(9) NOT NULL,
+  7  	     bdate date,
+  8  	     address varchar2(50),
+  9  	     sex char	     CHECK(sex = 'M' or sex = 'F'),
+ 10  	     salary number	     CHECK(salary>=20000 AND salary<=100000),-- need to put check on salary
+ 11  	     superssn char(9),
+ 12  	     dno int,
+ 13  	     constraint EMPPK
+ 14  		 primary key(ssn),
+ 15  	     constraint EMPSUPERVRFK
+ 16  		 foreign key(superssn) references Employee(ssn)
+ 17  		     ON DELETE SET NULL
+ 18  --
+ 19  --   Note:
+ 20  --      ON DELETE SET DEFAULT, ON UPDATE CASCADE
+ 21  -- Oracle does not support cascading updates, and does not allow you to set the value to the default
+ 22  -- when the parent row is deleted. Your two options for an on delete behavior are cascade or set null.
+ 23  -- Tested: February 05, 2018
+ 24  --      , constraint EMPDEPTFK
+ 25  -- 	     foreign key(dno) references Department(dnumber)
+ 26  -- 		     ON DELETE SET NULL
+ 27  -- ERROR - Department table has not been created yet
+ 28  -- need to postpone this constraint
+ 29  -- use alter table command to add this constraint
+ 30  -- alter table Employee add constraint EMPDEPTFK
+ 31  --     foreign key(dno) references Department(dnumber)
+ 32  --     ON DELETE SET NULL
+ 33  --
+ 34  );
+
+Table created.
+
+Elapsed: 00:00:00.02
+SQL> 
+SQL> drop table Department cascade constraints;
+
+Table dropped.
+
+Elapsed: 00:00:00.08
+SQL> commit;
+
+Commit complete.
+
+Elapsed: 00:00:00.00
+SQL> create table Department
+  2  (
+  3  	     dname varchar2(15)      NOT NULL,
+  4  	     dnumber int NOT NULL,
+  5  	     mgrssn char(9)	     DEFAULT '000000000',
+  6  	     mgrstartdate date,
+  7  	     constraint DEPTPK
+  8  		 primary key(dnumber),
+  9  	     constraint DEPTMGRFK
+ 10  		 foreign key(mgrssn) references Employee(ssn)
+ 11  			     ON DELETE SET NULL
+ 12  --
+ 13  -- 	     ON DELETE SET DEFAULT, ON UPDATE CASCADE
+ 14  --
+ 15  -- The above actions for DELETE SET DEFAULT and for UPDATE CASCADE does not work
+ 16  -- with  the current SQL-plus version we have at this time.
+ 17  -- Just use SET NULL for delete and disable the update action part of the constraint.
+ 18  --
+ 19  );
+
+Table created.
+
+Elapsed: 00:00:00.06
+SQL> 
+SQL> alter table Employee add
+  2  	     constraint EMPDEPTFK foreign key(dno) references Department(dnumber)
+  3  	     ON DELETE SET NULL;
+
+Table altered.
+
+Elapsed: 00:00:00.04
+SQL> 
+SQL> -- ADD the rest
+SQL> drop table Dept_locations cascade constraints;
+
+Table dropped.
+
+Elapsed: 00:00:00.07
+SQL> commit;
+
+Commit complete.
+
+Elapsed: 00:00:00.00
+SQL> create table Dept_locations
+  2  (
+  3  	     dnumber int NOT NULL,
+  4  	     dlocation varchar2(15) NOT NULL,
+  5  	     constraint DEPTLCTNSPK
+  6  		     primary key(dnumber,dlocation),
+  7  	     constraint DEPLCTNSFK
+  8  		     foreign key(dnumber) references Department(dnumber)
+  9  			     ON DELETE SET NULL
+ 10  );
+
+Table created.
+
+Elapsed: 00:00:00.03
+SQL> 
+SQL> drop table Project cascade constraints;
+
+Table dropped.
+
+Elapsed: 00:00:00.09
+SQL> commit;
+
+Commit complete.
+
+Elapsed: 00:00:00.00
+SQL> create table Project
+  2  (
+  3  	     pname varchar2(15) NOT NULL,
+  4  	     pnumber int NOT NULL,
+  5  	     plocation varchar2(15) NOT NULL,
+  6  	     dnumber int NOT NULL,
+  7  	     constraint PRJCTPK
+  8  		     primary key(pnumber),
+  9  	     constraint PRJCTFK
+ 10  		     foreign key(dnumber) references Department(dnumber)
+ 11  			     ON DELETE SET NULL
+ 12  );
+
+Table created.
+
+Elapsed: 00:00:00.02
+SQL> 
+SQL> drop table Workson cascade constraints;
+
+Table dropped.
+
+Elapsed: 00:00:00.09
+SQL> commit;
+
+Commit complete.
+
+Elapsed: 00:00:00.00
+SQL> create table Workson
+  2  (
+  3  	     essn char(9),
+  4  	     pno int,
+  5  	     hours decimal,
+  6  	     constraint WRKONPK
+  7  		     primary key(essn,pno),
+  8  	     constraint WRKONFK
+  9  		     foreign key(essn) references Employee(ssn) ON DELETE SET NULL,
+ 10  	     constraint WRKNFK
+ 11  		     foreign key(pno) references Project(pnumber)
+ 12  			     ON DELETE SET NULL
+ 13  );
+
+Table created.
+
+Elapsed: 00:00:00.03
+SQL> 
+SQL> --alter table Workson add
+SQL> --      constraint WRKONFK foreign key(pno) references Project(pnumber)
+SQL> --      ON DELETE SET NULL;
+SQL> 
+SQL> drop table Dependent cascade constraints;
+
+Table dropped.
+
+Elapsed: 00:00:00.06
+SQL> commit;
+
+Commit complete.
+
+Elapsed: 00:00:00.00
+SQL> create table Dependent
+  2  (
+  3  	     essn char(9)    DEFAULT '000000000',
+  4  	     dependentname varchar2(15) NOT NULL,
+  5  	     sex char	     CHECK(sex = 'M' or sex = 'F'),
+  6  	     bdate date,
+  7  	     relationship varchar2(8),
+  8  	     constraint DPNDNTPK
+  9  		     primary key(essn,dependentname),
+ 10  	     constraint DPNDNTFK
+ 11  		     foreign key(essn) references Employee(ssn)
+ 12  			     ON DELETE SET NULL
+ 13  );
+
+Table created.
+
+Elapsed: 00:00:00.06
+SQL> 
+SQL> -- CPS 541 HW 8 VENKATA SAI MADHAV KAZA
+SQL> -- ins-company.sql
+SQL> -- inserts tuples into the COMPANY DB
+SQL> -- part 2
+SQL> 
+SQL> -- keep these two commands at the top of every sql file
+SQL> set echo on
+SQL> set linesize 120
+SQL> 
+SQL> delete from Employee;
+
+0 rows deleted.
+
+Elapsed: 00:00:00.01
+SQL> commit;
+
+Commit complete.
+
+Elapsed: 00:00:00.00
+SQL> 
+SQL> -- insert only managers first with their dno is null
+SQL> INSERT INTO employee VALUES
+  2    ('James','E','Borg','888665555','10-NOV-27','450 Stone, Houston, TX','M',55000,null,null);
+
+1 row created.
+
+Elapsed: 00:00:00.07
+SQL> INSERT INTO employee VALUES
+  2    ('Franklin','T','Wong','333445555','08-DEC-45','638 Voss, Houston, TX','M',40000,'888665555',null);
+
+1 row created.
+
+Elapsed: 00:00:00.00
+SQL> INSERT INTO employee VALUES
+  2    ('Jennifer','S','Wallace','987654321','20-JUN-41','291 Berry, Bellaire, TX','F',43000,'888665555',null);
+
+1 row created.
+
+Elapsed: 00:00:00.00
+SQL> INSERT INTO employee VALUES
+  2    ('John','B','Smith','123456789','09-JAN-1965','731 Fondren, Houston, TX','M',30000,'333445555',null);
+
+1 row created.
+
+Elapsed: 00:00:00.00
+SQL> INSERT INTO employee VALUES
+  2    ('Alicia','J','Zelaya','999887777','19-JAN-1968','3321 Castle, Spring, TX','F',25000,'987654321',null);
+
+1 row created.
+
+Elapsed: 00:00:00.00
+SQL> INSERT INTO employee VALUES
+  2    ('Ramesh','K','Narayan','666884444','15-SEP-1962','975 Fire Oak, Humble, TX', 'M',38000,'333445555',null);
+
+1 row created.
+
+Elapsed: 00:00:00.00
+SQL> INSERT INTO employee VALUES
+  2    ('Joyce','A','English','453453453','31-JUL-1972','5631 Rice, Houston, TX','F',25000,'333445555',null);
+
+1 row created.
+
+Elapsed: 00:00:00.00
+SQL> INSERT INTO employee VALUES
+  2    ('Ahmad','V','Jabbar','987987987','29-MAR-1969','980 Dallas, Houston, TX','M',25000,'987654321',null);
+
+1 row created.
+
+Elapsed: 00:00:00.00
+SQL> -- need more manager inserts to employee
+SQL> 
+SQL> delete from Department;
+
+0 rows deleted.
+
+Elapsed: 00:00:00.00
+SQL> commit;
+
+Commit complete.
+
+Elapsed: 00:00:00.00
+SQL> insert into Department values ('Research',5,'333445555','22-MAY-1988');
+
+1 row created.
+
+Elapsed: 00:00:00.01
+SQL> insert into Department values ('Headquarters',1,'888665555','19-JUN-1981');
+
+1 row created.
+
+Elapsed: 00:00:00.00
+SQL> insert into Department values ('Administration',4,'987654321','01-JAN-1995');
+
+1 row created.
+
+Elapsed: 00:00:00.00
+SQL> -- need more inserts to department
+SQL> 
+SQL> -- now, update employee.dno for managers
+SQL> UPDATE employee SET dno = 1 WHERE ssn = '888665555';
+
+1 row updated.
+
+Elapsed: 00:00:00.00
+SQL> UPDATE employee SET dno = 5 WHERE ssn = '333445555';
+
+1 row updated.
+
+Elapsed: 00:00:00.00
+SQL> UPDATE employee SET dno = 4 WHERE ssn = '987654321';
+
+1 row updated.
+
+Elapsed: 00:00:00.00
+SQL> UPDATE employee SET dno = 5 WHERE ssn = '123456789';
+
+1 row updated.
+
+Elapsed: 00:00:00.00
+SQL> UPDATE employee SET dno = 4 WHERE ssn = '999887777';
+
+1 row updated.
+
+Elapsed: 00:00:00.00
+SQL> UPDATE employee SET dno = 5 WHERE ssn = '666884444';
+
+1 row updated.
+
+Elapsed: 00:00:00.00
+SQL> UPDATE employee SET dno = 5 WHERE ssn = '453453453';
+
+1 row updated.
+
+Elapsed: 00:00:00.00
+SQL> UPDATE employee SET dno = 4 WHERE ssn = '987987987';
+
+1 row updated.
+
+Elapsed: 00:00:00.00
+SQL> -- need to update the rest of managers
+SQL> 
+SQL> -- insert the rest of non-manager employees, supervisors first
+SQL> -- insert into Employee values ('John','B','Smith','123456789','09-JAN-1965','731 Fondren, Houston, TX','M',30000,'333445555',5);
+SQL> -- insert into Employee values ('Alicia','J','Zelaya','999887777','19-JAN-1968','3321 Castle, Spring, TX','F',25000,'987654321',4);
+SQL> -- insert into Employee values ('Ramesh','K','Narayan','666884444','15-SEP-1962','975 Fire Oak, Humble, TX', 'M',38000,'333445555',5);
+SQL> -- insert into Employee values ('Joyce','A','English','453453453','31-JUL-1972','5631 Rice, Houston, TX','F',25000,'333445555',5);
+SQL> -- insert into Employee values ('Ahmad','V','Jabbar','987987987','29-MAR-1969','980 Dallas, Houston, TX','M',25000,'987654321',4);
+SQL> -- need more inserts to employee
+SQL> 
+SQL> -- ADD the rest
+SQL> delete from Dept_locations;
+
+0 rows deleted.
+
+Elapsed: 00:00:00.00
+SQL> commit;
+
+Commit complete.
+
+Elapsed: 00:00:00.00
+SQL> insert into Dept_locations values (1,'Houston');
+
+1 row created.
+
+Elapsed: 00:00:00.02
+SQL> insert into Dept_locations values (4,'Stafford');
+
+1 row created.
+
+Elapsed: 00:00:00.00
+SQL> insert into Dept_locations values (5,'Bellaire');
+
+1 row created.
+
+Elapsed: 00:00:00.00
+SQL> insert into Dept_locations values (5,'Sugarland');
+
+1 row created.
+
+Elapsed: 00:00:00.00
+SQL> insert into Dept_locations values (5,'Houston');
+
+1 row created.
+
+Elapsed: 00:00:00.00
+SQL> 
+SQL> delete from Project;
+
+0 rows deleted.
+
+Elapsed: 00:00:00.00
+SQL> commit;
+
+Commit complete.
+
+Elapsed: 00:00:00.02
+SQL> insert into Project values ('ProductX',1,'Bellaire',5);
+
+1 row created.
+
+Elapsed: 00:00:00.01
+SQL> insert into Project values ('ProductY',2,'Sugarland',5);
+
+1 row created.
+
+Elapsed: 00:00:00.00
+SQL> insert into Project values ('ProductZ',3,'Houston',5);
+
+1 row created.
+
+Elapsed: 00:00:00.00
+SQL> insert into Project values ('Computerization',10,'Stafford',4);
+
+1 row created.
+
+Elapsed: 00:00:00.00
+SQL> insert into Project values ('Reorganization',20,'Houston',1);
+
+1 row created.
+
+Elapsed: 00:00:00.00
+SQL> insert into Project values ('Newbenefits',30,'Stafford',4);
+
+1 row created.
+
+Elapsed: 00:00:00.00
+SQL> 
+SQL> delete from Workson;
+
+0 rows deleted.
+
+Elapsed: 00:00:00.00
+SQL> commit;
+
+Commit complete.
+
+Elapsed: 00:00:00.00
+SQL> insert into Workson values ('123456789',1,32.5);
+
+1 row created.
+
+Elapsed: 00:00:00.02
+SQL> insert into Workson values ('123456789',2,7.5);
+
+1 row created.
+
+Elapsed: 00:00:00.00
+SQL> insert into Workson values ('666884444',3,40.0);
+
+1 row created.
+
+Elapsed: 00:00:00.00
+SQL> insert into Workson values ('453453453',1,20.0);
+
+1 row created.
+
+Elapsed: 00:00:00.00
+SQL> insert into Workson values ('453453453',2,20.0);
+
+1 row created.
+
+Elapsed: 00:00:00.00
+SQL> insert into Workson values ('333445555',2,10.0);
+
+1 row created.
+
+Elapsed: 00:00:00.00
+SQL> insert into Workson values ('333445555',3,10.0);
+
+1 row created.
+
+Elapsed: 00:00:00.00
+SQL> insert into Workson values ('333445555',10,10.0);
+
+1 row created.
+
+Elapsed: 00:00:00.00
+SQL> insert into Workson values ('333445555',20,10.0);
+
+1 row created.
+
+Elapsed: 00:00:00.00
+SQL> insert into Workson values ('999887777',30,30.0);
+
+1 row created.
+
+Elapsed: 00:00:00.00
+SQL> insert into Workson values ('999887777',10,10.0);
+
+1 row created.
+
+Elapsed: 00:00:00.00
+SQL> insert into Workson values ('987987987',10,35.0);
+
+1 row created.
+
+Elapsed: 00:00:00.00
+SQL> insert into Workson values ('987987987',30,5.0);
+
+1 row created.
+
+Elapsed: 00:00:00.00
+SQL> insert into Workson values ('987654321',30,20.0);
+
+1 row created.
+
+Elapsed: 00:00:00.00
+SQL> insert into Workson values ('987654321',20,15.0);
+
+1 row created.
+
+Elapsed: 00:00:00.00
+SQL> insert into Workson values ('888665555',20,null);
+
+1 row created.
+
+Elapsed: 00:00:00.00
+SQL> 
+SQL> delete from Dependent;
+
+0 rows deleted.
+
+Elapsed: 00:00:00.00
+SQL> commit;
+
+Commit complete.
+
+Elapsed: 00:00:00.09
+SQL> insert into Dependent values ('333445555','Alice','F','05-APR-1986','Daughter');
+
+1 row created.
+
+Elapsed: 00:00:00.22
+SQL> insert into Dependent values ('333445555','Theodore','M','25-OCT-1983','Son');
+
+1 row created.
+
+Elapsed: 00:00:00.00
+SQL> insert into Dependent values ('333445555','Joy','F','03-MAY-1958','Spouse');
+
+1 row created.
+
+Elapsed: 00:00:00.00
+SQL> insert into Dependent values ('987654321','Abner','M','28-FEB-1942','Spouse');
+
+1 row created.
+
+Elapsed: 00:00:00.00
+SQL> insert into Dependent values ('123456789','Michael','M','04-JAN-1988','Son');
+
+1 row created.
+
+Elapsed: 00:00:00.00
+SQL> insert into Dependent values ('123456789','Alice','F','30-DEC-1988','Daughter');
+
+1 row created.
+
+Elapsed: 00:00:00.00
+SQL> insert into Dependent values ('123456789','Elizabeth','F','05-MAY-1967','Spouse');
+
+1 row created.
+
+Elapsed: 00:00:00.00
+SQL> 
+SQL> -- CPS 541/ITC 341, 441 - PLSQL Trigger
+SQL> -- Dr. Ugur
+SQL> -- CPS 541 HW 8 VENKATA SAI MADHAV KAZA
+SQL> 
+SQL> set linesize 120;
+SQL> set echo on;
+SQL> set serveroutput on;
+SQL> set timing on;
+SQL> 
+SQL> -- Part 3
+SQL> create or replace trigger emp_trigger
+  2  after insert on employee
+  3  begin
+  4  	     update employee SET fname = upper(fname),lname = upper(lname), address = upper(address);
+  5  end;
+  6  /
+
+Trigger created.
+
+Elapsed: 00:00:00.02
+SQL> show errors
+No errors.
+SQL> 
+SQL> create or replace trigger dept_trigger
+  2  after insert on department
+  3  begin
+  4  	     update department SET dname = upper(dname);
+  5  end;
+  6  /
+
+Trigger created.
+
+Elapsed: 00:00:00.09
+SQL> show errors
+No errors.
+SQL> 
+SQL> create or replace trigger deptlctns_trigger
+  2  after insert on dept_locations
+  3  begin
+  4  	     update dept_locations SET dlocation = upper(dlocation);
+  5  end;
+  6  /
+
+Trigger created.
+
+Elapsed: 00:00:00.01
+SQL> show errors
+No errors.
+SQL> 
+SQL> create or replace trigger prjct_trigger
+  2  after insert on project
+  3  begin
+  4  	     update project SET pname = upper(pname),plocation = upper(plocation);
+  5  end;
+  6  /
+
+Trigger created.
+
+Elapsed: 00:00:00.01
+SQL> show errors
+No errors.
+SQL> 
+SQL> create or replace trigger wrkson_trigger
+  2  after insert on workson
+  3  begin
+  4  	     update workson SET essn = upper(essn);
+  5  end;
+  6  /
+
+Trigger created.
+
+Elapsed: 00:00:00.11
+SQL> show errors
+No errors.
+SQL> 
+SQL> create or replace trigger dpndnt_trigger
+  2  after insert on dependent
+  3  begin
+  4  	     update dependent SET dependentname = upper(dependentname),relationship = upper(relationship);
+  5  end;
+  6  /
+
+Trigger created.
+
+Elapsed: 00:00:00.08
+SQL> show errors
+No errors.
+SQL> 
+SQL> -- **** Part 3: Triggers implementation to change character datatype of all table columns into upper case character datatype columns **** --
+SQL> 
+SQL> -- before update
+SQL> select * from employee;
+
+FNAME           M LNAME           SSN       BDATE     ADDRESS                                            S     SALARY   
+--------------- - --------------- --------- --------- -------------------------------------------------- - ----------   
+SUPERSSN         DNO                                                                                                    
+--------- ----------                                                                                                    
+James           E Borg            888665555 10-NOV-27 450 Stone, Houston, TX                             M      55000   
+                   1                                                                                                    
+                                                                                                                        
+Franklin        T Wong            333445555 08-DEC-45 638 Voss, Houston, TX                              M      40000   
+888665555          5                                                                                                    
+                                                                                                                        
+Jennifer        S Wallace         987654321 20-JUN-41 291 Berry, Bellaire, TX                            F      43000   
+888665555          4                                                                                                    
+                                                                                                                        
+
+FNAME           M LNAME           SSN       BDATE     ADDRESS                                            S     SALARY   
+--------------- - --------------- --------- --------- -------------------------------------------------- - ----------   
+SUPERSSN         DNO                                                                                                    
+--------- ----------                                                                                                    
+John            B Smith           123456789 09-JAN-65 731 Fondren, Houston, TX                           M      30000   
+333445555          5                                                                                                    
+                                                                                                                        
+Alicia          J Zelaya          999887777 19-JAN-68 3321 Castle, Spring, TX                            F      25000   
+987654321          4                                                                                                    
+                                                                                                                        
+Ramesh          K Narayan         666884444 15-SEP-62 975 Fire Oak, Humble, TX                           M      38000   
+333445555          5                                                                                                    
+                                                                                                                        
+
+FNAME           M LNAME           SSN       BDATE     ADDRESS                                            S     SALARY   
+--------------- - --------------- --------- --------- -------------------------------------------------- - ----------   
+SUPERSSN         DNO                                                                                                    
+--------- ----------                                                                                                    
+Joyce           A English         453453453 31-JUL-72 5631 Rice, Houston, TX                             F      25000   
+333445555          5                                                                                                    
+                                                                                                                        
+Ahmad           V Jabbar          987987987 29-MAR-69 980 Dallas, Houston, TX                            M      25000   
+987654321          4                                                                                                    
+                                                                                                                        
+
+8 rows selected.
+
+Elapsed: 00:00:00.06
+SQL> 
+SQL> -- update - lowercase fname, lname and address
+SQL> insert into Employee values ('Rahul','J','Chopra','543216789','29-DEC-1998','480 Oak street, sugarland, TX','M',68000,'999887777',1);
+
+1 row created.
+
+Elapsed: 00:00:00.00
+SQL> 
+SQL> -- notice that fname, lname and address are all uppercase now
+SQL> select * from employee;
+
+FNAME           M LNAME           SSN       BDATE     ADDRESS                                            S     SALARY   
+--------------- - --------------- --------- --------- -------------------------------------------------- - ----------   
+SUPERSSN         DNO                                                                                                    
+--------- ----------                                                                                                    
+JAMES           E BORG            888665555 10-NOV-27 450 STONE, HOUSTON, TX                             M      55000   
+                   1                                                                                                    
+                                                                                                                        
+FRANKLIN        T WONG            333445555 08-DEC-45 638 VOSS, HOUSTON, TX                              M      40000   
+888665555          5                                                                                                    
+                                                                                                                        
+JENNIFER        S WALLACE         987654321 20-JUN-41 291 BERRY, BELLAIRE, TX                            F      43000   
+888665555          4                                                                                                    
+                                                                                                                        
+
+FNAME           M LNAME           SSN       BDATE     ADDRESS                                            S     SALARY   
+--------------- - --------------- --------- --------- -------------------------------------------------- - ----------   
+SUPERSSN         DNO                                                                                                    
+--------- ----------                                                                                                    
+JOHN            B SMITH           123456789 09-JAN-65 731 FONDREN, HOUSTON, TX                           M      30000   
+333445555          5                                                                                                    
+                                                                                                                        
+ALICIA          J ZELAYA          999887777 19-JAN-68 3321 CASTLE, SPRING, TX                            F      25000   
+987654321          4                                                                                                    
+                                                                                                                        
+RAMESH          K NARAYAN         666884444 15-SEP-62 975 FIRE OAK, HUMBLE, TX                           M      38000   
+333445555          5                                                                                                    
+                                                                                                                        
+
+FNAME           M LNAME           SSN       BDATE     ADDRESS                                            S     SALARY   
+--------------- - --------------- --------- --------- -------------------------------------------------- - ----------   
+SUPERSSN         DNO                                                                                                    
+--------- ----------                                                                                                    
+JOYCE           A ENGLISH         453453453 31-JUL-72 5631 RICE, HOUSTON, TX                             F      25000   
+333445555          5                                                                                                    
+                                                                                                                        
+AHMAD           V JABBAR          987987987 29-MAR-69 980 DALLAS, HOUSTON, TX                            M      25000   
+987654321          4                                                                                                    
+                                                                                                                        
+RAHUL           J CHOPRA          543216789 29-DEC-98 480 OAK STREET, SUGARLAND, TX                      M      68000   
+999887777          1                                                                                                    
+                                                                                                                        
+
+9 rows selected.
+
+Elapsed: 00:00:00.06
+SQL> 
+SQL> -- undo the update (insert)
+SQL> rollback;
+
+Rollback complete.
+
+Elapsed: 00:00:00.05
+SQL> 
+SQL> -- notice that fname, lname and address are all lowercase now
+SQL> select * from employee;
+
+FNAME           M LNAME           SSN       BDATE     ADDRESS                                            S     SALARY   
+--------------- - --------------- --------- --------- -------------------------------------------------- - ----------   
+SUPERSSN         DNO                                                                                                    
+--------- ----------                                                                                                    
+James           E Borg            888665555 10-NOV-27 450 Stone, Houston, TX                             M      55000   
+                   1                                                                                                    
+                                                                                                                        
+Franklin        T Wong            333445555 08-DEC-45 638 Voss, Houston, TX                              M      40000   
+888665555          5                                                                                                    
+                                                                                                                        
+Jennifer        S Wallace         987654321 20-JUN-41 291 Berry, Bellaire, TX                            F      43000   
+888665555          4                                                                                                    
+                                                                                                                        
+
+FNAME           M LNAME           SSN       BDATE     ADDRESS                                            S     SALARY   
+--------------- - --------------- --------- --------- -------------------------------------------------- - ----------   
+SUPERSSN         DNO                                                                                                    
+--------- ----------                                                                                                    
+John            B Smith           123456789 09-JAN-65 731 Fondren, Houston, TX                           M      30000   
+333445555          5                                                                                                    
+                                                                                                                        
+Alicia          J Zelaya          999887777 19-JAN-68 3321 Castle, Spring, TX                            F      25000   
+987654321          4                                                                                                    
+                                                                                                                        
+Ramesh          K Narayan         666884444 15-SEP-62 975 Fire Oak, Humble, TX                           M      38000   
+333445555          5                                                                                                    
+                                                                                                                        
+
+FNAME           M LNAME           SSN       BDATE     ADDRESS                                            S     SALARY   
+--------------- - --------------- --------- --------- -------------------------------------------------- - ----------   
+SUPERSSN         DNO                                                                                                    
+--------- ----------                                                                                                    
+Joyce           A English         453453453 31-JUL-72 5631 Rice, Houston, TX                             F      25000   
+333445555          5                                                                                                    
+                                                                                                                        
+Ahmad           V Jabbar          987987987 29-MAR-69 980 Dallas, Houston, TX                            M      25000   
+987654321          4                                                                                                    
+                                                                                                                        
+
+8 rows selected.
+
+Elapsed: 00:00:00.05
+SQL> 
+SQL> -- before update
+SQL> select * from department;
+
+DNAME              DNUMBER MGRSSN    MGRSTARTD                                                                          
+--------------- ---------- --------- ---------                                                                          
+Research                 5 333445555 22-MAY-88                                                                          
+Headquarters             1 888665555 19-JUN-81                                                                          
+Administration           4 987654321 01-JAN-95                                                                          
+
+Elapsed: 00:00:00.01
+SQL> 
+SQL> -- update - lowercase dname
+SQL> insert into Department values ('Lab', 9, '333445555', null);
+
+1 row created.
+
+Elapsed: 00:00:00.00
+SQL> 
+SQL> -- notice that dnames are all uppercase now
+SQL> select * from department;
+
+DNAME              DNUMBER MGRSSN    MGRSTARTD                                                                          
+--------------- ---------- --------- ---------                                                                          
+RESEARCH                 5 333445555 22-MAY-88                                                                          
+HEADQUARTERS             1 888665555 19-JUN-81                                                                          
+ADMINISTRATION           4 987654321 01-JAN-95                                                                          
+LAB                      9 333445555                                                                                    
+
+Elapsed: 00:00:00.01
+SQL> 
+SQL> -- undo the update (insert)
+SQL> rollback;
+
+Rollback complete.
+
+Elapsed: 00:00:00.11
+SQL> 
+SQL> -- notice that dnames are all lowercase now
+SQL> select * from department;
+
+DNAME              DNUMBER MGRSSN    MGRSTARTD                                                                          
+--------------- ---------- --------- ---------                                                                          
+Research                 5 333445555 22-MAY-88                                                                          
+Headquarters             1 888665555 19-JUN-81                                                                          
+Administration           4 987654321 01-JAN-95                                                                          
+
+Elapsed: 00:00:00.01
+SQL> 
+SQL> -- before update
+SQL> select * from dept_locations;
+
+   DNUMBER DLOCATION                                                                                                    
+---------- ---------------                                                                                              
+         1 Houston                                                                                                      
+         4 Stafford                                                                                                     
+         5 Bellaire                                                                                                     
+         5 Houston                                                                                                      
+         5 Sugarland                                                                                                    
+
+Elapsed: 00:00:00.01
+SQL> 
+SQL> -- update - lowercase dlocation
+SQL> insert into Dept_locations values (1,'Canton');
+
+1 row created.
+
+Elapsed: 00:00:00.00
+SQL> 
+SQL> -- notice that dlocations are all uppercase now
+SQL> select * from dept_locations;
+
+   DNUMBER DLOCATION                                                                                                    
+---------- ---------------                                                                                              
+         1 CANTON                                                                                                       
+         1 HOUSTON                                                                                                      
+         4 STAFFORD                                                                                                     
+         5 BELLAIRE                                                                                                     
+         5 HOUSTON                                                                                                      
+         5 SUGARLAND                                                                                                    
+
+6 rows selected.
+
+Elapsed: 00:00:00.01
+SQL> 
+SQL> -- undo the update (insert)
+SQL> rollback;
+
+Rollback complete.
+
+Elapsed: 00:00:00.07
+SQL> 
+SQL> -- notice that dlocation are all lowercase now
+SQL> select * from dept_locations;
+
+   DNUMBER DLOCATION                                                                                                    
+---------- ---------------                                                                                              
+         1 Houston                                                                                                      
+         4 Stafford                                                                                                     
+         5 Bellaire                                                                                                     
+         5 Houston                                                                                                      
+         5 Sugarland                                                                                                    
+
+Elapsed: 00:00:00.01
+SQL> 
+SQL> -- before update
+SQL> select * from project;
+
+PNAME              PNUMBER PLOCATION          DNUMBER                                                                   
+--------------- ---------- --------------- ----------                                                                   
+ProductX                 1 Bellaire                 5                                                                   
+ProductY                 2 Sugarland                5                                                                   
+ProductZ                 3 Houston                  5                                                                   
+Computerization         10 Stafford                 4                                                                   
+Reorganization          20 Houston                  1                                                                   
+Newbenefits             30 Stafford                 4                                                                   
+
+6 rows selected.
+
+Elapsed: 00:00:00.02
+SQL> 
+SQL> -- update - lowercase pname and plocation
+SQL> insert into Project values ('ProductW',40,'Canton',1);
+
+1 row created.
+
+Elapsed: 00:00:00.00
+SQL> 
+SQL> -- notice that pname and plocation are all uppercase now
+SQL> select * from project;
+
+PNAME              PNUMBER PLOCATION          DNUMBER                                                                   
+--------------- ---------- --------------- ----------                                                                   
+PRODUCTX                 1 BELLAIRE                 5                                                                   
+PRODUCTY                 2 SUGARLAND                5                                                                   
+PRODUCTZ                 3 HOUSTON                  5                                                                   
+COMPUTERIZATION         10 STAFFORD                 4                                                                   
+REORGANIZATION          20 HOUSTON                  1                                                                   
+NEWBENEFITS             30 STAFFORD                 4                                                                   
+PRODUCTW                40 CANTON                   1                                                                   
+
+7 rows selected.
+
+Elapsed: 00:00:00.02
+SQL> 
+SQL> -- undo the update (insert)
+SQL> rollback;
+
+Rollback complete.
+
+Elapsed: 00:00:00.00
+SQL> 
+SQL> -- notice that pname and plocation are all lowercase now
+SQL> select * from project;
+
+PNAME              PNUMBER PLOCATION          DNUMBER                                                                   
+--------------- ---------- --------------- ----------                                                                   
+ProductX                 1 Bellaire                 5                                                                   
+ProductY                 2 Sugarland                5                                                                   
+ProductZ                 3 Houston                  5                                                                   
+Computerization         10 Stafford                 4                                                                   
+Reorganization          20 Houston                  1                                                                   
+Newbenefits             30 Stafford                 4                                                                   
+
+6 rows selected.
+
+Elapsed: 00:00:00.01
+SQL> 
+SQL> -- before update
+SQL> select * from workson;
+
+ESSN             PNO      HOURS                                                                                         
+--------- ---------- ----------                                                                                         
+123456789          1         33                                                                                         
+123456789          2          8                                                                                         
+666884444          3         40                                                                                         
+453453453          1         20                                                                                         
+453453453          2         20                                                                                         
+333445555          2         10                                                                                         
+333445555          3         10                                                                                         
+333445555         10         10                                                                                         
+333445555         20         10                                                                                         
+999887777         30         30                                                                                         
+999887777         10         10                                                                                         
+
+ESSN             PNO      HOURS                                                                                         
+--------- ---------- ----------                                                                                         
+987987987         10         35                                                                                         
+987987987         30          5                                                                                         
+987654321         30         20                                                                                         
+987654321         20         15                                                                                         
+888665555         20                                                                                                    
+
+16 rows selected.
+
+Elapsed: 00:00:00.03
+SQL> 
+SQL> -- update - lowercase essn
+SQL> insert into Workson values ('123456789',20,56.5);
+
+1 row created.
+
+Elapsed: 00:00:00.00
+SQL> 
+SQL> -- notice that essn are all uppercase now
+SQL> select * from workson;
+
+ESSN             PNO      HOURS                                                                                         
+--------- ---------- ----------                                                                                         
+123456789          1         33                                                                                         
+123456789          2          8                                                                                         
+666884444          3         40                                                                                         
+453453453          1         20                                                                                         
+453453453          2         20                                                                                         
+333445555          2         10                                                                                         
+333445555          3         10                                                                                         
+333445555         10         10                                                                                         
+333445555         20         10                                                                                         
+999887777         30         30                                                                                         
+999887777         10         10                                                                                         
+
+ESSN             PNO      HOURS                                                                                         
+--------- ---------- ----------                                                                                         
+987987987         10         35                                                                                         
+987987987         30          5                                                                                         
+987654321         30         20                                                                                         
+987654321         20         15                                                                                         
+888665555         20                                                                                                    
+123456789         20         57                                                                                         
+
+17 rows selected.
+
+Elapsed: 00:00:00.03
+SQL> 
+SQL> -- undo the update (insert)
+SQL> rollback;
+
+Rollback complete.
+
+Elapsed: 00:00:00.16
+SQL> 
+SQL> -- notice that essn are all lowercase now
+SQL> select * from workson;
+
+ESSN             PNO      HOURS                                                                                         
+--------- ---------- ----------                                                                                         
+123456789          1         33                                                                                         
+123456789          2          8                                                                                         
+666884444          3         40                                                                                         
+453453453          1         20                                                                                         
+453453453          2         20                                                                                         
+333445555          2         10                                                                                         
+333445555          3         10                                                                                         
+333445555         10         10                                                                                         
+333445555         20         10                                                                                         
+999887777         30         30                                                                                         
+999887777         10         10                                                                                         
+
+ESSN             PNO      HOURS                                                                                         
+--------- ---------- ----------                                                                                         
+987987987         10         35                                                                                         
+987987987         30          5                                                                                         
+987654321         30         20                                                                                         
+987654321         20         15                                                                                         
+888665555         20                                                                                                    
+
+16 rows selected.
+
+Elapsed: 00:00:00.03
+SQL> 
+SQL> -- before update
+SQL> select * from dependent;
+
+ESSN      DEPENDENTNAME   S BDATE     RELATION                                                                          
+--------- --------------- - --------- --------                                                                          
+333445555 Alice           F 05-APR-86 Daughter                                                                          
+333445555 Theodore        M 25-OCT-83 Son                                                                               
+333445555 Joy             F 03-MAY-58 Spouse                                                                            
+987654321 Abner           M 28-FEB-42 Spouse                                                                            
+123456789 Michael         M 04-JAN-88 Son                                                                               
+123456789 Alice           F 30-DEC-88 Daughter                                                                          
+123456789 Elizabeth       F 05-MAY-67 Spouse                                                                            
+
+7 rows selected.
+
+Elapsed: 00:00:00.02
+SQL> 
+SQL> -- update - lowercase dependentname and relationship
+SQL> insert into Dependent values ('987654321','Robert','M','29-FEB-1996','Son');
+
+1 row created.
+
+Elapsed: 00:00:00.00
+SQL> 
+SQL> -- notice that dependentname and relationship are all uppercase now
+SQL> select * from dependent;
+
+ESSN      DEPENDENTNAME   S BDATE     RELATION                                                                          
+--------- --------------- - --------- --------                                                                          
+333445555 ALICE           F 05-APR-86 DAUGHTER                                                                          
+333445555 THEODORE        M 25-OCT-83 SON                                                                               
+333445555 JOY             F 03-MAY-58 SPOUSE                                                                            
+987654321 ABNER           M 28-FEB-42 SPOUSE                                                                            
+123456789 MICHAEL         M 04-JAN-88 SON                                                                               
+123456789 ALICE           F 30-DEC-88 DAUGHTER                                                                          
+123456789 ELIZABETH       F 05-MAY-67 SPOUSE                                                                            
+987654321 ROBERT          M 29-FEB-96 SON                                                                               
+
+8 rows selected.
+
+Elapsed: 00:00:00.02
+SQL> 
+SQL> -- undo the update (insert)
+SQL> rollback;
+
+Rollback complete.
+
+Elapsed: 00:00:00.02
+SQL> 
+SQL> -- notice that dependentname and relationship are all lowercase now
+SQL> select * from dependent;
+
+ESSN      DEPENDENTNAME   S BDATE     RELATION                                                                          
+--------- --------------- - --------- --------                                                                          
+333445555 Alice           F 05-APR-86 Daughter                                                                          
+333445555 Theodore        M 25-OCT-83 Son                                                                               
+333445555 Joy             F 03-MAY-58 Spouse                                                                            
+987654321 Abner           M 28-FEB-42 Spouse                                                                            
+123456789 Michael         M 04-JAN-88 Son                                                                               
+123456789 Alice           F 30-DEC-88 Daughter                                                                          
+123456789 Elizabeth       F 05-MAY-67 Spouse                                                                            
+
+7 rows selected.
+
+Elapsed: 00:00:00.01
+SQL> 
+SQL> -- CPS 541/ITC 341, 441 - PLSQL Function example-1
+SQL> -- Dr. Ugur
+SQL> -- CPS 541 HW 8 VENKATA SAI MADHAV KAZA
+SQL> 
+SQL> set linesize 120;
+SQL> set echo on;
+SQL> set serveroutput on;
+SQL> set timing on;
+SQL> 
+SQL> -- part 4
+SQL> -- Function that returns Dname from Department for any given employee.
+SQL> -- The parameter to the function is the SSN.
+SQL> 
+SQL> CREATE OR REPLACE FUNCTION get_dept_name(EMPSSN IN employee.ssn%type)
+  2  	RETURN department.dname%type
+  3  IS
+  4  	mm department.dname%type;
+  5  BEGIN
+  6  	mm := '';  -- initially empty value
+  7  
+  8  	SELECT dname into mm FROM EMPLOYEE E, DEPARTMENT D
+  9  	WHERE E.DNO = D.DNUMBER AND E.SSN = EMPSSN ;
+ 10  
+ 11  	RETURN(mm);
+ 12  
+ 13  -- exception handling
+ 14  
+ 15  	exception
+ 16  	  when NO_DATA_FOUND then
+ 17  	    dbms_output.put_line('No data found');
+ 18  	    RETURN(mm);
+ 19  
+ 20  END;
+ 21  /
+
+Function created.
+
+Elapsed: 00:00:00.04
+SQL> show errors
+No errors.
+SQL> 
+SQL> -- **** Part 4 answer **** -- function call
+SQL> declare
+  2  	     deptname department.dname%type;
+  3  begin
+  4  -- function call
+  5  	     deptname := get_dept_name('123456789');
+  6  	     dbms_output.put_line('dept name for ' || '123456789' || ' is ' || deptname);
+  7  
+  8  -- function call
+  9  	     deptname := get_dept_name('111111111');
+ 10  	     if deptname != '' then
+ 11  		     dbms_output.put_line('dept name for ' || '111111111' || ' is ' || deptname);
+ 12  	     end if;
+ 13  end;
+ 14  /
+dept name for 123456789 is Research                                                                                     
+No data found                                                                                                           
+
+PL/SQL procedure successfully completed.
+
+Elapsed: 00:00:00.01
+SQL> 
+SQL> -- using the function in a query
+SQL> 
+SQL> select ssn, fname, lname, get_dept_name(ssn) as DEPTNAME
+  2  from employee;
+
+SSN       FNAME           LNAME                                                                                         
+--------- --------------- ---------------                                                                               
+DEPTNAME                                                                                                                
+------------------------------------------------------------------------------------------------------------------------
+888665555 James           Borg                                                                                          
+Headquarters                                                                                                            
+                                                                                                                        
+333445555 Franklin        Wong                                                                                          
+Research                                                                                                                
+                                                                                                                        
+987654321 Jennifer        Wallace                                                                                       
+Administration                                                                                                          
+                                                                                                                        
+
+SSN       FNAME           LNAME                                                                                         
+--------- --------------- ---------------                                                                               
+DEPTNAME                                                                                                                
+------------------------------------------------------------------------------------------------------------------------
+123456789 John            Smith                                                                                         
+Research                                                                                                                
+                                                                                                                        
+999887777 Alicia          Zelaya                                                                                        
+Administration                                                                                                          
+                                                                                                                        
+666884444 Ramesh          Narayan                                                                                       
+Research                                                                                                                
+                                                                                                                        
+
+SSN       FNAME           LNAME                                                                                         
+--------- --------------- ---------------                                                                               
+DEPTNAME                                                                                                                
+------------------------------------------------------------------------------------------------------------------------
+453453453 Joyce           English                                                                                       
+Research                                                                                                                
+                                                                                                                        
+987987987 Ahmad           Jabbar                                                                                        
+Administration                                                                                                          
+                                                                                                                        
+
+8 rows selected.
+
+Elapsed: 00:00:00.06
+SQL> 
+SQL> select lname || ', ' || fname || ' ' || 'works at ' || get_dept_name(ssn) || '.' as EMP_DEPT_INFO
+  2  from employee;
+
+EMP_DEPT_INFO                                                                                                           
+------------------------------------------------------------------------------------------------------------------------
+Borg, James works at Headquarters.                                                                                      
+Wong, Franklin works at Research.                                                                                       
+Wallace, Jennifer works at Administration.                                                                              
+Smith, John works at Research.                                                                                          
+Zelaya, Alicia works at Administration.                                                                                 
+Narayan, Ramesh works at Research.                                                                                      
+English, Joyce works at Research.                                                                                       
+Jabbar, Ahmad works at Administration.                                                                                  
+
+8 rows selected.
+
+Elapsed: 00:00:00.34
+SQL> 
+SQL> -- undo changes that are done for testing, if you make a change to a table,
+SQL> -- you can undo that change by 'rollback'
+SQL> -- rollback;
+SQL> 
+SQL> -- part 5
+SQL> -- Implement a Function that returns manager’s full name for any given department.
+SQL> -- The parameter to the function would be the department name.
+SQL> CREATE OR REPLACE FUNCTION get_manager_name(DEPNAME IN department.dname%type)
+  2  	RETURN VARCHAR2
+  3  IS
+  4  	mh VARCHAR2(100);
+  5  	ml employee.lname%type;
+  6  	mm employee.minit%type;
+  7  	mf employee.fname%type;
+  8  BEGIN
+  9  	mh := '';-- initially empty value
+ 10  
+ 11  	SELECT lname,minit,fname into ml,mm,mf FROM EMPLOYEE E, DEPARTMENT D
+ 12  	WHERE E.SSN = D.MGRSSN AND E.DNO = D.DNUMBER AND D.DNAME = DEPNAME ;
+ 13  
+ 14  	mh := mf || ' ' || mm || ' ' || ml;
+ 15  
+ 16  	RETURN(mh);
+ 17  
+ 18  -- exception handling
+ 19  
+ 20  	exception
+ 21  	  when NO_DATA_FOUND then
+ 22  	    dbms_output.put_line('No data found');
+ 23  	    RETURN(mh);
+ 24  
+ 25  END;
+ 26  /
+
+Function created.
+
+Elapsed: 00:00:00.03
+SQL> show errors
+No errors.
+SQL> 
+SQL> -- **** Part 5 answer **** -- function call
+SQL> declare
+  2  	     empfname VARCHAR2(100);
+  3  begin
+  4  -- function call
+  5  	     empfname := get_manager_name('Research');
+  6  	     dbms_output.put_line('Managers full name for ' || 'Research' || ' is ' || empfname);
+  7  
+  8  -- function call
+  9  	     empfname := get_manager_name('Lab');
+ 10  	     if empfname != '' then
+ 11  		     dbms_output.put_line('Managers full name  for ' || 'Lab' || ' is ' || empfname);
+ 12  	     end if;
+ 13  end;
+ 14  /
+Managers full name for Research is Franklin T Wong                                                                      
+No data found                                                                                                           
+
+PL/SQL procedure successfully completed.
+
+Elapsed: 00:00:00.02
+SQL> 
+SQL> -- using the function in a query
+SQL> 
+SQL> select D.dname, get_manager_name(D.dname) as EMPNAME_DEPNAME
+  2  from department D;
+
+DNAME                                                                                                                   
+---------------                                                                                                         
+EMPNAME_DEPNAME                                                                                                         
+------------------------------------------------------------------------------------------------------------------------
+Research                                                                                                                
+Franklin T Wong                                                                                                         
+                                                                                                                        
+Headquarters                                                                                                            
+James E Borg                                                                                                            
+                                                                                                                        
+Administration                                                                                                          
+Jennifer S Wallace                                                                                                      
+                                                                                                                        
+
+Elapsed: 00:00:00.02
+SQL> 
+SQL> select D.dname || ' department has manager as' || ' ' || get_manager_name(D.dname) || '.' as DEPARTMENT_INFO
+  2  from department D;
+
+DEPARTMENT_INFO                                                                                                         
+------------------------------------------------------------------------------------------------------------------------
+Research department has manager as Franklin T Wong.                                                                     
+Headquarters department has manager as James E Borg.                                                                    
+Administration department has manager as Jennifer S Wallace.                                                            
+
+Elapsed: 00:00:00.01
+SQL> 
+SQL> -- undo changes that are done for testing, if you make a change to a table,
+SQL> -- you can undo that change by 'rollback'
+SQL> -- rollback;
+SQL> 
+SQL> -- part 6
+SQL> -- Implement a Function that returns manager’s full name for any given department.
+SQL> -- The parameter to the function would be the department number.
+SQL> CREATE OR REPLACE FUNCTION get_manager_deptnum_name(DEPNUMBER IN department.dnumber%type)
+  2  	RETURN VARCHAR2
+  3  IS
+  4  	mh VARCHAR2(100);
+  5  	ml employee.lname%type;
+  6  	mm employee.minit%type;
+  7  	mf employee.fname%type;
+  8  BEGIN
+  9  	mh := '';-- initially empty value
+ 10  
+ 11  	SELECT lname,minit,fname into ml,mm,mf FROM EMPLOYEE E, DEPARTMENT D
+ 12  	WHERE E.SSN = D.MGRSSN AND E.DNO = D.DNUMBER AND D.DNUMBER = DEPNUMBER ;
+ 13  
+ 14  	mh := mf || ' ' || mm || ' ' || ml;
+ 15  
+ 16  	RETURN(mh);
+ 17  
+ 18  -- exception handling
+ 19  
+ 20  	exception
+ 21  	  when NO_DATA_FOUND then
+ 22  	    dbms_output.put_line('No data found');
+ 23  	    RETURN(mh);
+ 24  
+ 25  END;
+ 26  /
+
+Function created.
+
+Elapsed: 00:00:00.03
+SQL> show errors
+No errors.
+SQL> 
+SQL> -- **** Part 6 answer **** -- function call
+SQL> declare
+  2  	     empfname VARCHAR2(100);
+  3  begin
+  4  -- function call
+  5  	     empfname := get_manager_deptnum_name(1);
+  6  	     dbms_output.put_line('Managers full name for ' || '1' || ' department number is ' || empfname);
+  7  
+  8  -- function call
+  9  	     empfname := get_manager_deptnum_name(6);
+ 10  	     if empfname != '' then
+ 11  		     dbms_output.put_line('Managers full name  for ' || '6' || ' department number is ' || empfname);
+ 12  	     end if;
+ 13  end;
+ 14  /
+Managers full name for 1 department number is James E Borg                                                              
+No data found                                                                                                           
+
+PL/SQL procedure successfully completed.
+
+Elapsed: 00:00:00.01
+SQL> 
+SQL> -- using the function in a query
+SQL> 
+SQL> select D.dnumber, get_manager_deptnum_name(D.dnumber) as EMPNAME_DEPNUMBER
+  2  from department D;
+
+   DNUMBER                                                                                                              
+----------                                                                                                              
+EMPNAME_DEPNUMBER                                                                                                       
+------------------------------------------------------------------------------------------------------------------------
+         1                                                                                                              
+James E Borg                                                                                                            
+                                                                                                                        
+         4                                                                                                              
+Jennifer S Wallace                                                                                                      
+                                                                                                                        
+         5                                                                                                              
+Franklin T Wong                                                                                                         
+                                                                                                                        
+
+Elapsed: 00:00:00.02
+SQL> 
+SQL> select D.dnumber || ' department number has manager as' || ' ' || get_manager_deptnum_name(D.dnumber) || '.' as DEPARTMENT_INFO
+  2  from department D;
+
+DEPARTMENT_INFO                                                                                                         
+------------------------------------------------------------------------------------------------------------------------
+1 department number has manager as James E Borg.                                                                        
+4 department number has manager as Jennifer S Wallace.                                                                  
+5 department number has manager as Franklin T Wong.                                                                     
+
+Elapsed: 00:00:00.01
+SQL> 
+SQL> -- undo changes that are done for testing, if you make a change to a table,
+SQL> -- you can undo that change by 'rollback'
+SQL> -- rollback;
+SQL> 
+SQL> -- CPS 541/ITC 341, 441 - PLSQL stored procedure example-1
+SQL> -- Dr. Ugur
+SQL> -- CPS 541 HW 8 VENKATA SAI MADHAV KAZA
+SQL> 
+SQL> set linesize 120;
+SQL> set echo on;
+SQL> set serveroutput on;
+SQL> set timing on;
+SQL> 
+SQL> -- part 7
+SQL> -- given empssn, percent increase (x) find new salary of the employee and display it.
+SQL> CREATE OR REPLACE PROCEDURE get_sal_new_sp(EMPSSN IN employee.ssn%type,PERCNT IN number)
+  2  AS
+  3  	sal_new number;
+  4  BEGIN
+  5  	sal_new := '';	-- initially empty value
+  6  
+  7  	SELECT SALARY*(1+PERCNT/100) into sal_new FROM EMPLOYEE
+  8  	WHERE SSN = EMPSSN;
+  9  
+ 10  	dbms_output.put_line('New Salary  is '|| sal_new);
+ 11  
+ 12  -- exception handling
+ 13  
+ 14  	exception
+ 15  	  when NO_DATA_FOUND then
+ 16  	    dbms_output.put_line('No data found');
+ 17  
+ 18  END;
+ 19  /
+
+Procedure created.
+
+Elapsed: 00:00:00.08
+SQL> show errors
+No errors.
+SQL> 
+SQL> -- **** Test **** -- sp call
+SQL> -- calling the stored procedure get_dept_name_sp
+SQL> exec get_sal_new_sp('123456789',10);
+New Salary  is 33000                                                                                                    
+
+PL/SQL procedure successfully completed.
+
+Elapsed: 00:00:00.00
+SQL> exec get_sal_new_sp('987654321',30);
+New Salary  is 55900                                                                                                    
+
+PL/SQL procedure successfully completed.
+
+Elapsed: 00:00:00.00
+SQL> 
+SQL> -- using the store procedure in a query
+SQL> -- ERROR, does not work
+SQL> -- since a SP does not return a value
+SQL> -- select ssn, fname, lname, exec get_dept_name_sp(ssn)
+SQL> -- from employee;
+SQL> 
+SQL> -- undo changes that are done for testing, if you make a change to a table,
+SQL> -- you can undo that change by 'rollback'
+SQL> -- rollback;
+SQL> 
+SQL> -- CPS 541/ITC 341, 441 - PLSQL- Package example-1
+SQL> -- Dr. Ugur
+SQL> -- CPS 541 HW 8 VENKATA SAI MADHAV KAZA
+SQL> 
+SQL> set linesize 120;
+SQL> set echo on;
+SQL> set serveroutput on;
+SQL> set timing on;
+SQL> 
+SQL> -- Question 8 Answer Code Begins Here ---
+SQL> -- Package that includes methods to:
+SQL> -- 1. Count the number of dependents for a valid employee
+SQL> -- 2. Check whether the ssn number given is valid for an employee or not
+SQL> -- 3. Check whether the department name given is valid for a department or not
+SQL> -- 4. Average number of dependents for a particular department name
+SQL> -- 5. Check whether the ssn and dependent name is a valid one or not
+SQL> -- 6. Remove a dependent tuple if there is a match of ssn and dependent name in input
+SQL> 
+SQL> -- **** Package Declaration **** --
+SQL> create or replace package dependent_package as
+  2  	 procedure get_dependent_num(eno in employee.ssn%type);
+  3  	     procedure valid_emp_ssn(eno in employee.ssn%type);
+  4  	     procedure valid_dpt_name(DEPNAME in department.dname%type);
+  5  	     procedure get_dependents_avg(DEPNAME in department.dname%type);
+  6  	     procedure valid_remove_dependent(eno in employee.ssn%type,dpname in dependent.dependentname%type);
+  7  	     procedure remove_dependent(eno in employee.ssn%type,dpname in dependent.dependentname%type);
+  8  end;
+  9  /
+
+Package created.
+
+Elapsed: 00:00:00.04
+SQL> show errors
+No errors.
+SQL> 
+SQL> 
+SQL> -- **** Package Body **** --
+SQL> create or replace package body dependent_package as
+  2  
+  3  	 procedure get_dependent_num(eno in employee.ssn%type)
+  4  	 as
+  5  		     dn number;
+  6  	 begin
+  7  		     dn := '';	-- initially empty value
+  8  		     --select count(*) into dn from employee where ssn = eno;
+  9  
+ 10  		     select count(*) into dn from employee e, dependent d
+ 11  		     where d.essn = e.ssn and d.essn = eno;
+ 12  
+ 13  		     dbms_output.put_line('Number of dependents of emp. ' || eno || ' is ' || dn);
+ 14  
+ 15  		     -- exception handling
+ 16  		     exception
+ 17  		     when NO_DATA_FOUND then
+ 18  			     dbms_output.put_line('No data found');
+ 19  	 end;
+ 20  
+ 21  	     procedure valid_emp_ssn(eno in employee.ssn%type)
+ 22  	     as
+ 23  		     dn employee.lname%type;
+ 24  	     begin
+ 25  		     select lname into dn from employee where ssn = eno;
+ 26  
+ 27  		     dbms_output.put_line('Valid SSN number ' || eno || ' is ' ||dn);
+ 28  
+ 29  		     -- exception handling
+ 30  		     exception
+ 31  		     when NO_DATA_FOUND then
+ 32  			     dbms_output.put_line('Invalid SSN number ' || eno);
+ 33  	     end;
+ 34  
+ 35  	     procedure valid_dpt_name(DEPNAME in department.dname%type)
+ 36  	     as
+ 37  		     en employee.lname%type;
+ 38  	     begin
+ 39  		     select lname into en from employee e,department d
+ 40  		     where e.ssn = d.mgrssn and e.dno = d.dnumber and d.dname = DEPNAME;
+ 41  
+ 42  		     dbms_output.put_line('Valid Department Name ' || DEPNAME || ' is ' ||en);
+ 43  
+ 44  		     -- exception handling
+ 45  		     exception
+ 46  		     when NO_DATA_FOUND then
+ 47  			     dbms_output.put_line('Invalid Department Name is ' || DEPNAME);
+ 48  	     end;
+ 49  
+ 50  	     procedure get_dependents_avg(DEPNAME in department.dname%type)
+ 51  	     as
+ 52  		     dn1 number;
+ 53  		     dn2 number;
+ 54  		     dn number;
+ 55  	     begin
+ 56  		     select count(*) into dn1 from employee e, department d1, dependent d2
+ 57  		     where e.ssn = d1.mgrssn and e.dno = d1.dnumber and d2.essn = e.ssn and d1.dname = DEPNAME;
+ 58  
+ 59  		     select count(*) into dn2 from employee e, department d
+ 60  		     where e.dno = d.dnumber and e.ssn = d.mgrssn;
+ 61  
+ 62  		     dn := (dn1/dn2); -- the average number of dependents per number of employees match in department table
+ 63  
+ 64  		     dbms_output.put_line('Average number of dependents ' || DEPNAME || ' is ' ||dn);
+ 65  
+ 66  		     -- exception handling
+ 67  		     exception
+ 68  		     when NO_DATA_FOUND then
+ 69  			     dbms_output.put_line('No Data Found ');
+ 70  	     end;
+ 71  
+ 72  	     procedure valid_remove_dependent(eno in employee.ssn%type,dpname in dependent.dependentname%type)
+ 73  	     as
+ 74  		     lm employee.lname%type;
+ 75  		     dm dependent.dependentname%type;
+ 76  	     begin
+ 77  		     select e.lname,d.dependentname into lm,dm from employee e, dependent d
+ 78  		     where e.ssn = eno and e.ssn = d.essn and d.dependentname = dpname;
+ 79  
+ 80  		     dbms_output.put_line('Valid Dependent and ssn: ' || eno || ' is ' || lm || ' with dependent name as ' || dm );
+ 81  
+ 82  		     -- exception handling
+ 83  		     exception
+ 84  		     when NO_DATA_FOUND then
+ 85  			     dbms_output.put_line('Invalid Dependent and SSN combination ');
+ 86  	     end;
+ 87  
+ 88  	     procedure remove_dependent(eno in employee.ssn%type,dpname in dependent.dependentname%type)
+ 89  	     as
+ 90  		     bn number;
+ 91  		     an number;
+ 92  	     begin
+ 93  
+ 94  		     select count(*) into bn from dependent where dependentname = dpname and essn = eno;
+ 95  
+ 96  		     delete from dependent where dependentname = dpname and essn = eno;
+ 97  
+ 98  		     select count(*) into an from dependent where dependentname = dpname and essn = eno;
+ 99  
+100  		     if an != bn then
+101  			     dbms_output.put_line('Dependents with dependent name and ssn: ' || dpname || ' and ' || eno || ' is removed from the dependents table' );
+102  		     end if;
+103  		     if an = bn then
+104  			     dbms_output.put_line('Dependents table is not removed by any tuples ');
+105  		     end if;
+106  		     -- exception handling
+107  		     exception
+108  		     when NO_DATA_FOUND then
+109  			     dbms_output.put_line('No data found ');
+110  
+111  	     end;
+112  end;
+113  /
+
+Package body created.
+
+Elapsed: 00:00:00.04
+SQL> show errors
+No errors.
+SQL> 
+SQL> 
+SQL> -- **** Question 8 Part 1 **** --
+SQL> 
+SQL> exec dependent_package.valid_emp_ssn('123456789');
+Valid SSN number 123456789 is Smith                                                                                     
+
+PL/SQL procedure successfully completed.
+
+Elapsed: 00:00:00.00
+SQL> 
+SQL> exec dependent_package.get_dependent_num('123456789');
+Number of dependents of emp. 123456789 is 3                                                                             
+
+PL/SQL procedure successfully completed.
+
+Elapsed: 00:00:00.01
+SQL> 
+SQL> exec dependent_package.valid_emp_ssn('111111111');
+Invalid SSN number 111111111                                                                                            
+
+PL/SQL procedure successfully completed.
+
+Elapsed: 00:00:00.00
+SQL> 
+SQL> exec dependent_package.get_dependent_num('111111111');
+Number of dependents of emp. 111111111 is 0                                                                             
+
+PL/SQL procedure successfully completed.
+
+Elapsed: 00:00:00.00
+SQL> 
+SQL> -- **** Question 8 Part 2 **** --
+SQL> 
+SQL> exec dependent_package.valid_dpt_name('Research');
+Valid Department Name Research is Wong                                                                                  
+
+PL/SQL procedure successfully completed.
+
+Elapsed: 00:00:00.00
+SQL> 
+SQL> exec dependent_package.get_dependents_avg('Research');
+Average number of dependents Research is 1                                                                              
+
+PL/SQL procedure successfully completed.
+
+Elapsed: 00:00:00.02
+SQL> 
+SQL> exec dependent_package.valid_dpt_name('Lab');
+Invalid Department Name is Lab                                                                                          
+
+PL/SQL procedure successfully completed.
+
+Elapsed: 00:00:00.00
+SQL> 
+SQL> exec dependent_package.get_dependents_avg('Lab');
+Average number of dependents Lab is 0                                                                                   
+
+PL/SQL procedure successfully completed.
+
+Elapsed: 00:00:00.00
+SQL> 
+SQL> exec dependent_package.valid_dpt_name('Administration');
+Valid Department Name Administration is Wallace                                                                         
+
+PL/SQL procedure successfully completed.
+
+Elapsed: 00:00:00.00
+SQL> 
+SQL> exec dependent_package.get_dependents_avg('Administration');
+Average number of dependents Administration is .3333333333333333333333333333333333333333                                
+
+PL/SQL procedure successfully completed.
+
+Elapsed: 00:00:00.00
+SQL> 
+SQL> -- **** Question 8 Part 3 **** --
+SQL> -- Test 1 for remove dependent question --
+SQL> exec dependent_package.valid_remove_dependent('333445555','Alice');
+Valid Dependent and ssn: 333445555 is Wong with dependent name as Alice                                                 
+
+PL/SQL procedure successfully completed.
+
+Elapsed: 00:00:00.00
+SQL> 
+SQL> -- Dependents Before Delete Operation
+SQL> select * from dependent;
+
+ESSN      DEPENDENTNAME   S BDATE     RELATION                                                                          
+--------- --------------- - --------- --------                                                                          
+333445555 Alice           F 05-APR-86 Daughter                                                                          
+333445555 Theodore        M 25-OCT-83 Son                                                                               
+333445555 Joy             F 03-MAY-58 Spouse                                                                            
+987654321 Abner           M 28-FEB-42 Spouse                                                                            
+123456789 Michael         M 04-JAN-88 Son                                                                               
+123456789 Alice           F 30-DEC-88 Daughter                                                                          
+123456789 Elizabeth       F 05-MAY-67 Spouse                                                                            
+
+7 rows selected.
+
+Elapsed: 00:00:00.02
+SQL> 
+SQL> exec dependent_package.remove_dependent('333445555','Alice');
+Dependents with dependent name and ssn: Alice and 333445555 is removed from the dependents table                        
+
+PL/SQL procedure successfully completed.
+
+Elapsed: 00:00:00.00
+SQL> 
+SQL> -- Dependents After Delete Operation
+SQL> select * from dependent;
+
+ESSN      DEPENDENTNAME   S BDATE     RELATION                                                                          
+--------- --------------- - --------- --------                                                                          
+333445555 Theodore        M 25-OCT-83 Son                                                                               
+333445555 Joy             F 03-MAY-58 Spouse                                                                            
+987654321 Abner           M 28-FEB-42 Spouse                                                                            
+123456789 Michael         M 04-JAN-88 Son                                                                               
+123456789 Alice           F 30-DEC-88 Daughter                                                                          
+123456789 Elizabeth       F 05-MAY-67 Spouse                                                                            
+
+6 rows selected.
+
+Elapsed: 00:00:00.01
+SQL> 
+SQL> exec dependent_package.valid_remove_dependent('333445555','Alice');
+Invalid Dependent and SSN combination                                                                                   
+
+PL/SQL procedure successfully completed.
+
+Elapsed: 00:00:00.00
+SQL> 
+SQL> rollback;
+
+Rollback complete.
+
+Elapsed: 00:00:00.00
+SQL> 
+SQL> exec dependent_package.valid_remove_dependent('333445555','Alice');
+Valid Dependent and ssn: 333445555 is Wong with dependent name as Alice                                                 
+
+PL/SQL procedure successfully completed.
+
+Elapsed: 00:00:00.00
+SQL> -- Test 2 for remove dependent question --
+SQL> exec dependent_package.valid_remove_dependent('331445555','Rohit');
+Invalid Dependent and SSN combination                                                                                   
+
+PL/SQL procedure successfully completed.
+
+Elapsed: 00:00:00.00
+SQL> 
+SQL> -- Dependents Before Delete Operation
+SQL> select * from dependent;
+
+ESSN      DEPENDENTNAME   S BDATE     RELATION                                                                          
+--------- --------------- - --------- --------                                                                          
+333445555 Alice           F 05-APR-86 Daughter                                                                          
+333445555 Theodore        M 25-OCT-83 Son                                                                               
+333445555 Joy             F 03-MAY-58 Spouse                                                                            
+987654321 Abner           M 28-FEB-42 Spouse                                                                            
+123456789 Michael         M 04-JAN-88 Son                                                                               
+123456789 Alice           F 30-DEC-88 Daughter                                                                          
+123456789 Elizabeth       F 05-MAY-67 Spouse                                                                            
+
+7 rows selected.
+
+Elapsed: 00:00:00.01
+SQL> 
+SQL> exec dependent_package.remove_dependent('333445555','Rohit');
+Dependents table is not removed by any tuples                                                                           
+
+PL/SQL procedure successfully completed.
+
+Elapsed: 00:00:00.00
+SQL> 
+SQL> -- Dependents After Delete Operation
+SQL> select * from dependent;
+
+ESSN      DEPENDENTNAME   S BDATE     RELATION                                                                          
+--------- --------------- - --------- --------                                                                          
+333445555 Alice           F 05-APR-86 Daughter                                                                          
+333445555 Theodore        M 25-OCT-83 Son                                                                               
+333445555 Joy             F 03-MAY-58 Spouse                                                                            
+987654321 Abner           M 28-FEB-42 Spouse                                                                            
+123456789 Michael         M 04-JAN-88 Son                                                                               
+123456789 Alice           F 30-DEC-88 Daughter                                                                          
+123456789 Elizabeth       F 05-MAY-67 Spouse                                                                            
+
+7 rows selected.
+
+Elapsed: 00:00:00.02
+SQL> 
+SQL> 
+SQL> exec dependent_package.valid_remove_dependent('331445555','Rohit');
+Invalid Dependent and SSN combination                                                                                   
+
+PL/SQL procedure successfully completed.
+
+Elapsed: 00:00:00.00
+SQL> 
+SQL> rollback;
+
+Rollback complete.
+
+Elapsed: 00:00:00.00
+SQL> 
+SQL> exec dependent_package.valid_remove_dependent('331445555','Rohit');
+Invalid Dependent and SSN combination                                                                                   
+
+PL/SQL procedure successfully completed.
+
+Elapsed: 00:00:00.00
+SQL> 
+SQL> 
+SQL> -- undo changes that are done for testing, if you make a change to a table,
+SQL> -- you can undo that change by 'rollback'
+SQL> -- rollback;
+SQL> spool off
